@@ -169,9 +169,10 @@ cdef class Generator:
 
     Notes
     -----
-    The Python stdlib module `random` contains pseudo-random number generator
-    with a number of methods that are similar to the ones available in
-    `Generator`. It uses Mersenne Twister, and this bit generator can
+    The Python stdlib module :external+python:mod:`random` contains
+    pseudo-random number generator with a number of methods that are similar
+    to the ones available in `Generator`.
+    It uses Mersenne Twister, and this bit generator can
     be accessed using `MT19937`. `Generator`, besides being
     NumPy-aware, has the advantage that it provides a much larger number
     of probability distributions to choose from.
@@ -992,7 +993,7 @@ cdef class Generator:
         if a.ndim == 0:
             return idx
 
-        if not is_scalar and idx.ndim == 0:
+        if not is_scalar and idx.ndim == 0 and a.ndim == 1:
             # If size == () then the user requested a 0-d array as opposed to
             # a scalar object when size is None. However a[idx] is always a
             # scalar and not an array. So this makes sure the result is an
@@ -1548,7 +1549,7 @@ cdef class Generator:
         and ``m = 20`` is:
         
         >>> import matplotlib.pyplot as plt
-        >>> from scipy import stats  # doctest: +SKIP
+        >>> from scipy import stats
         >>> dfnum, dfden, size = 20, 20, 10000
         >>> s = rng.f(dfnum=dfnum, dfden=dfden, size=size)
         >>> bins, density, _ = plt.hist(s, 30, density=True)

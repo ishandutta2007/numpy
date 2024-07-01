@@ -28,7 +28,7 @@ NumPy includes several constants:
 
     .. rubric:: References
 
-    https://en.wikipedia.org/wiki/Euler-Mascheroni_constant
+    https://en.wikipedia.org/wiki/Euler%27s_constant
 
 
 .. data:: inf
@@ -87,8 +87,6 @@ NumPy includes several constants:
 
     NumPy uses the IEEE Standard for Binary Floating-Point for Arithmetic
     (IEEE 754). This means that Not a Number is not equivalent to infinity.
-
-    `NaN` and `NAN` are aliases of `nan`.
 
     .. rubric:: Examples
 

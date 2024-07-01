@@ -506,6 +506,10 @@ if cc.has_function_attribute('visibility:hidden') and host_machine.system() != '
 endif
 cdata.set('NPY_VISIBILITY_HIDDEN', visibility_hidden)
 
+# if not set, we're using lapack_lite
+if have_lapack
+  cdata.set10('HAVE_EXTERNAL_LAPACK', have_lapack)
+endif
 
 config_h = configure_file(
   input: 'config.h.in',
@@ -944,12 +948,10 @@ foreach gen_mtargets : [
   ],
   [
     'loops_trigonometric.dispatch.h',
-    src_file.process('src/umath/loops_trigonometric.dispatch.c.src'),
+    'src/umath/loops_trigonometric.dispatch.cpp',
     [
-      AVX512F, [AVX2, FMA3],
-      VSX4, VSX3, VSX2,
+      AVX512_SKX, [AVX2, FMA3],
       NEON_VFPV4,
-      VXE2, VXE
     ]
   ],
   [
@@ -1020,7 +1022,8 @@ foreach gen_mtargets : [
       'src/common',
       'src/multiarray',
       'src/npymath',
-      'src/umath'
+      'src/umath',
+      'src/highway',
     ]
   )
   if not is_variable('multiarray_umath_mtargets')
@@ -1101,6 +1104,7 @@ src_multiarray = multiarray_gen_headers + [
   'src/multiarray/nditer_constr.c',
   'src/multiarray/nditer_pywrap.c',
   src_file.process('src/multiarray/nditer_templ.c.src'),
+  'src/multiarray/npy_static_data.c',
   'src/multiarray/number.c',
   'src/multiarray/refcount.c',
   src_file.process('src/multiarray/scalartypes.c.src'),
@@ -1206,8 +1210,7 @@ py.extension_module('_multiarray_umath',
     src_numpy_api[1],  # __multiarray_api.h
     src_umath_doc_h,
     npy_math_internal_h,
-  ],
-  objects: svml_objects,
+  ] + svml_objects,
   c_args: c_args_common,
   cpp_args: cpp_args_common,
   include_directories: [

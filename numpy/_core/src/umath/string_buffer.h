@@ -262,12 +262,12 @@ struct Buffer {
     char *buf;
     char *after;
 
-    inline Buffer<enc>()
+    inline Buffer()
     {
         buf = after = NULL;
     }
 
-    inline Buffer<enc>(char *buf_, npy_int64 elsize_)
+    inline Buffer(char *buf_, npy_int64 elsize_)
     {
         buf = buf_;
         after = buf_ + elsize_;
@@ -1462,7 +1462,7 @@ string_expandtabs_length(Buffer<enc> buf, npy_int64 tabsize)
                 line_pos = 0;
             }
         }
-        if (new_len == PY_SSIZE_T_MAX || new_len < 0) {
+        if (new_len > INT_MAX  || new_len < 0) {
             npy_gil_error(PyExc_OverflowError, "new string is too long");
             return -1;
         }

@@ -503,6 +503,14 @@ class TestArrayConstruction:
         assert_array_equal(e, [[1, 3, 7], [1, 2, 3]])
         assert_array_equal(d, [[1, 5, 3], [1,2,3]])
 
+    def test_array_copy_str(self):
+        with pytest.raises(
+            ValueError,
+            match="strings are not allowed for 'copy' keyword. "
+                  "Use True/False/None instead."
+        ):
+            np.array([1, 2, 3], copy="always")
+
     def test_array_cont(self):
         d = np.ones(10)[::2]
         assert_(np.ascontiguousarray(d).flags.c_contiguous)
@@ -586,16 +594,16 @@ class TestAssignment:
     )
     def test_unicode_assignment(self):
         # gh-5049
-        from numpy._core.arrayprint import set_string_function
+        from numpy._core.arrayprint import set_printoptions
 
         @contextmanager
         def inject_str(s):
             """ replace ndarray.__str__ temporarily """
-            set_string_function(lambda x: s, repr=False)
+            set_printoptions(formatter={"all": lambda x: s})
             try:
                 yield
             finally:
-                set_string_function(None, repr=False)
+                set_printoptions()
 
         a1d = np.array(['test'])
         a0d = np.array('done')
@@ -10203,6 +10211,16 @@ def test_partition_fp(N, dtype):
     assert_arr_partitioned(np.sort(arr)[k], k,
             arr[np.argpartition(arr, k, kind='introselect')])
 
+    # Check that `np.inf < np.nan`
+    # This follows np.sort
+    arr[0] = np.nan
+    arr[1] = np.inf
+    o1 = np.partition(arr, -2, kind='introselect')
+    o2 = arr[np.argpartition(arr, -2, kind='introselect')]
+    for out in [o1, o2]:
+        assert_(np.isnan(out[-1]))
+        assert_equal(out[-2], np.inf)
+
 def test_cannot_assign_data():
     a = np.arange(10)
     b = np.linspace(0, 1, 10)
@@ -10233,10 +10251,29 @@ class TestDevice:
     """
     Test arr.device attribute and arr.to_device() method.
     """
-    def test_device(self):
-        arr = np.arange(5)
-
+    @pytest.mark.parametrize("func, arg", [
+        (np.arange, 5),
+        (np.empty_like, []),
+        (np.zeros, 5),
+        (np.empty, (5, 5)),
+        (np.asarray, []),
+        (np.asanyarray, []),
+    ])
+    def test_device(self, func, arg):
+        arr = func(arg)
         assert arr.device == "cpu"
+        arr = func(arg, device=None)
+        assert arr.device == "cpu"
+        arr = func(arg, device="cpu")
+        assert arr.device == "cpu"
+
+        with assert_raises_regex(
+            ValueError,
+            r"Device not understood. Only \"cpu\" is allowed, "
+            r"but received: nonsense"
+        ):
+            func(arg, device="nonsense")
+
         with assert_raises_regex(
             AttributeError,
             r"attribute 'device' of '(numpy.|)ndarray' objects is "

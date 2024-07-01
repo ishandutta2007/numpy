@@ -9,7 +9,6 @@ from decimal import Decimal
 import numpy as np
 from numpy._core import umath, sctypes
 from numpy._core.numerictypes import obj2sctype
-from numpy._core.arrayprint import set_string_function
 from numpy.exceptions import AxisError
 from numpy.random import rand, randint, randn
 from numpy.testing import (
@@ -323,6 +322,18 @@ class TestNonarrayArgs:
 
         out = np.take(a, indices)
         assert_equal(out, tgt)
+
+        pairs = [
+            (np.int32, np.int32), (np.int32, np.int64),
+            (np.int64, np.int32), (np.int64, np.int64)
+        ]
+        for array_type, indices_type in pairs:
+            x = np.array([1, 2, 3, 4, 5], dtype=array_type)
+            ind = np.array([0, 2, 2, 3], dtype=indices_type)
+            tgt = np.array([1, 3, 3, 4], dtype=array_type)
+            out = np.take(x, ind)
+            assert_equal(out, tgt)
+            assert_equal(out.dtype, tgt.dtype)  
 
     def test_trace(self):
         c = [[1, 2], [3, 4], [5, 6]]
@@ -2729,9 +2740,9 @@ class TestClip:
         assert actual.tolist() == expected.tolist()
 
     def test_clip_all_none(self):
-        a = np.arange(10, dtype=object)
-        with assert_raises_regex(ValueError, 'max or min'):
-            np.clip(a, None, None)
+        arr = np.arange(10, dtype=object)
+        assert_equal(np.clip(arr, None, None), arr)
+        assert_equal(np.clip(arr), arr)
 
     def test_clip_invalid_casting(self):
         a = np.arange(10, dtype=object)
@@ -2847,6 +2858,27 @@ class TestClip:
         expected = np.minimum(amax, np.maximum(arr, amin, dtype=t), dtype=t)
         assert result.dtype == t
         assert_array_equal(result, expected)
+
+    def test_clip_min_max_args(self):
+        arr = np.arange(5)
+
+        assert_array_equal(np.clip(arr), arr)
+        assert_array_equal(np.clip(arr, min=2, max=3), np.clip(arr, 2, 3))
+        assert_array_equal(np.clip(arr, min=None, max=2),
+                           np.clip(arr, None, 2))
+
+        with assert_raises_regex(TypeError, "missing 1 required positional "
+                                 "argument: 'a_max'"):
+            np.clip(arr, 2)
+        with assert_raises_regex(TypeError, "missing 1 required positional "
+                                 "argument: 'a_min'"):
+            np.clip(arr, a_max=2)
+        msg = ("Passing `min` or `max` keyword argument when `a_min` and "
+               "`a_max` are provided is forbidden.")
+        with assert_raises_regex(ValueError, msg):
+            np.clip(arr, 2, 3, max=3)
+        with assert_raises_regex(ValueError, msg):
+            np.clip(arr, 2, 3, min=2)
 
 
 class TestAllclose:
@@ -3580,24 +3612,6 @@ class TestArgwhere:
 
     def test_list(self):
         assert_equal(np.argwhere([4, 0, 2, 1, 3]), [[0], [2], [3], [4]])
-
-
-@pytest.mark.filterwarnings(
-    "ignore:.*set_string_function.*:DeprecationWarning"
-)
-class TestStringFunction:
-
-    def test_set_string_function(self):
-        a = np.array([1])
-        set_string_function(lambda x: "FOO", repr=True)
-        assert_equal(repr(a), "FOO")
-        set_string_function(None, repr=True)
-        assert_equal(repr(a), "array([1])")
-
-        set_string_function(lambda x: "FOO", repr=False)
-        assert_equal(str(a), "FOO")
-        set_string_function(None, repr=False)
-        assert_equal(str(a), "[1]")
 
 
 class TestRoll:

@@ -143,6 +143,10 @@ default_role = "autolink"
 # for source files.
 exclude_dirs = []
 
+exclude_patterns = []
+if sys.version_info[:2] >= (3, 12):
+    exclude_patterns += ["reference/distutils.rst"]
+
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = False
 
@@ -262,6 +266,7 @@ html_theme_options = {
         "version_match": switcher_version,
         "json_url": "https://numpy.org/doc/_static/versions.json",
     },
+    "show_version_warning_banner": True,
 }
 
 html_title = "%s v%s Manual" % (project, version)
@@ -384,7 +389,7 @@ latex_use_modindex = False
 # -----------------------------------------------------------------------------
 
 texinfo_documents = [
-  ("contents", 'numpy', 'NumPy Documentation', _stdauthor, 'NumPy',
+  ("index", 'numpy', 'NumPy Documentation', _stdauthor, 'NumPy',
    "NumPy: array processing for numbers, strings, records, and objects.",
    'Programming',
    1),

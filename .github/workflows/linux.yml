@@ -114,7 +114,7 @@ jobs:
         pytest --pyargs numpy -m "not slow"
 
   full:
-    # Build a wheel, install it, then run the full test suite with code coverage
+    # Install as editable, then run the full test suite with code coverage
     needs: [smoke_test]
     runs-on: ubuntu-22.04
     steps:
@@ -138,16 +138,14 @@ jobs:
         mkdir -p ./.openblas
         python -c"import scipy_openblas32 as ob32; print(ob32.get_pkg_config())" > ./.openblas/scipy-openblas.pc
 
-    - name: Build a wheel
+    - name: Install as editable
       env:
         PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
       run: |
-        python -m build --wheel --no-isolation --skip-dependency-check
-        pip install dist/numpy*.whl
+        pip install -e . --no-build-isolation
     - name: Run full test suite
       run: |
-        cd tools
-        pytest --pyargs numpy --cov-report=html:build/coverage
+        pytest numpy --cov-report=html:build/coverage
         # TODO: gcov
 
   benchmark:
@@ -166,7 +164,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libopenblas-dev ninja-build
-        pip install spin cython asv virtualenv packaging
+        pip install asv virtualenv packaging -r requirements/build_requirements.txt
     - name: Install NumPy
       run: |
         spin build -- -Dcpu-dispatch=none
@@ -180,6 +178,11 @@ jobs:
       shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
       run: |
         spin bench --quick
+    - name: Check docstests
+      shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
+      run: |
+        pip install scipy-doctest hypothesis matplotlib scipy pytz
+        spin check-docs -v
 
   sdist:
     needs: [smoke_test]
@@ -228,7 +231,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: data-apis/array-api-tests
-        ref: '3cf8ef654c456d9fd1633d64e67b4470465940e9'  # Latest commit as of 2024-04-09
+        ref: '809a1984414cfc0bca68a823aeaeba7df3900d17'  # Latest commit as of 2024-06-26
         submodules: 'true'
         path: 'array-api-tests'
     - name: Set up Python
@@ -287,3 +290,25 @@ jobs:
         rm -rf build-install
         ./vendored-meson/meson/meson.py install -C build --destdir ../build-install --tags=runtime,python-runtime,devel
         python tools/check_installed_files.py $(find ./build-install -path '*/site-packages/numpy') --no-tests
+
+  free-threaded:
+    needs: [smoke_test]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push'
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        submodules: recursive
+        fetch-tags: true
+    # TODO: replace with setup-python when there is support
+    - uses: deadsnakes/action@6c8b9b82fe0b4344f4b98f2775fcc395df45e494 # v3.1.0
+      with:
+          python-version: '3.13-dev'
+          nogil: true
+    # TODO: remove cython nightly install when cython does a release
+    - name: Install nightly Cython
+      run: |
+        pip install git+https://github.com/cython/cython
+    - uses: ./.github/meson_actions
+      env:
+        PYTHON_GIL: 0

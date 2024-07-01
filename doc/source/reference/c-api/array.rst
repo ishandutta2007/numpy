@@ -3371,13 +3371,13 @@ Data-type descriptors
     can also be used with the "O&" character in PyArg_ParseTuple
     processing.
 
-.. c:function:: int Pyarray_DescrAlignConverter( \
+.. c:function:: int PyArray_DescrAlignConverter( \
         PyObject* obj, PyArray_Descr** dtype)
 
     Like :c:func:`PyArray_DescrConverter` except it aligns C-struct-like
     objects on word-boundaries as the compiler would.
 
-.. c:function:: int Pyarray_DescrAlignConverter2( \
+.. c:function:: int PyArray_DescrAlignConverter2( \
         PyObject* obj, PyArray_Descr** dtype)
 
     Like :c:func:`PyArray_DescrConverter2` except it aligns C-struct-like
@@ -4076,21 +4076,6 @@ extension with the lowest :c:data:`NPY_FEATURE_VERSION` as possible.
     This just returns the value :c:data:`NPY_FEATURE_VERSION`.
     :c:data:`NPY_FEATURE_VERSION` changes whenever the API changes (e.g. a
     function is added). A changed value does not always require a recompile.
-
-Internal Flexibility
-~~~~~~~~~~~~~~~~~~~~
-
-.. c:function:: void PyArray_SetStringFunction(PyObject* op, int repr)
-
-    This function allows you to alter the tp_str and tp_repr methods
-    of the array object to any Python function. Thus you can alter
-    what happens for all arrays when str(arr) or repr(arr) is called
-    from Python. The function to be called is passed in as *op*. If
-    *repr* is non-zero, then this function will be called in response
-    to repr(arr), otherwise the function will be called in response to
-    str(arr). No check on whether or not *op* is callable is
-    performed. The callable passed in to *op* should expect an array
-    argument and should return a string to be printed.
 
 
 Memory management

@@ -323,7 +323,8 @@ def flip(m, axis=None):
             [7, 6]],
            [[1, 0],
             [3, 2]]])
-    >>> A = np.random.randn(3,4,5)
+    >>> rng = np.random.default_rng()
+    >>> A = rng.normal(size=(3,4,5))
     >>> np.all(np.flip(A,2) == A[:,:,::-1,...])
     True
     """
@@ -999,7 +1000,7 @@ def gradient(f, *varargs, axis=None, edge_order=1):
         4. Any combination of N scalars/arrays with the meaning of 2. and 3.
 
         If `axis` is given, the number of varargs must equal the number of axes.
-        Default: 1.
+        Default: 1. (see Examples below).
 
     edge_order : {1, 2}, optional
         Gradient is calculated using N-th order accurate differences
@@ -1017,14 +1018,14 @@ def gradient(f, *varargs, axis=None, edge_order=1):
 
     Returns
     -------
-    gradient : ndarray or list of ndarray
-        A list of ndarrays (or a single ndarray if there is only one dimension)
-        corresponding to the derivatives of f with respect to each dimension.
-        Each derivative has the same shape as f.
+    gradient : ndarray or tuple of ndarray
+        A tuple of ndarrays (or a single ndarray if there is only one
+        dimension) corresponding to the derivatives of f with respect
+        to each dimension. Each derivative has the same shape as f.
 
     Examples
     --------
-    >>> f = np.array([1, 2, 4, 7, 11, 16], dtype=float)
+    >>> f = np.array([1, 2, 4, 7, 11, 16])
     >>> np.gradient(f)
     array([1. , 1.5, 2.5, 3.5, 4.5, 5. ])
     >>> np.gradient(f, 2)
@@ -1040,7 +1041,7 @@ def gradient(f, *varargs, axis=None, edge_order=1):
 
     Or a non uniform one:
 
-    >>> x = np.array([0., 1., 1.5, 3.5, 4., 6.], dtype=float)
+    >>> x = np.array([0., 1., 1.5, 3.5, 4., 6.])
     >>> np.gradient(f, x)
     array([1. ,  3. ,  3.5,  6.7,  6.9,  2.5])
 
@@ -1048,20 +1049,22 @@ def gradient(f, *varargs, axis=None, edge_order=1):
     axis. In this example the first array stands for the gradient in
     rows and the second one in columns direction:
 
-    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]], dtype=float))
-    [array([[ 2.,  2., -1.],
-           [ 2.,  2., -1.]]), array([[1. , 2.5, 4. ],
-           [1. , 1. , 1. ]])]
+    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]]))
+    (array([[ 2.,  2., -1.],
+            [ 2.,  2., -1.]]),
+     array([[1. , 2.5, 4. ],
+            [1. , 1. , 1. ]]))
 
     In this example the spacing is also specified:
     uniform for axis=0 and non uniform for axis=1
 
     >>> dx = 2.
     >>> y = [1., 1.5, 3.5]
-    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]], dtype=float), dx, y)
-    [array([[ 1. ,  1. , -0.5],
-           [ 1. ,  1. , -0.5]]), array([[2. , 2. , 2. ],
-           [2. , 1.7, 0.5]])]
+    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]]), dx, y)
+    (array([[ 1. ,  1. , -0.5],
+            [ 1. ,  1. , -0.5]]),
+     array([[2. , 2. , 2. ],
+            [2. , 1.7, 0.5]]))
 
     It is possible to specify how boundaries are treated using `edge_order`
 
@@ -1075,9 +1078,55 @@ def gradient(f, *varargs, axis=None, edge_order=1):
     The `axis` keyword can be used to specify a subset of axes of which the
     gradient is calculated
 
-    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]], dtype=float), axis=0)
+    >>> np.gradient(np.array([[1, 2, 6], [3, 4, 5]]), axis=0)
     array([[ 2.,  2., -1.],
            [ 2.,  2., -1.]])
+
+    The `varargs` argument defines the spacing between sample points in the
+    input array. It can take two forms:
+
+    1. An array, specifying coordinates, which may be unevenly spaced:
+
+    >>> x = np.array([0., 2., 3., 6., 8.])
+    >>> y = x ** 2
+    >>> np.gradient(y, x, edge_order=2)
+    array([ 0.,  4.,  6., 12., 16.])
+
+    2. A scalar, representing the fixed sample distance:
+
+    >>> dx = 2
+    >>> x = np.array([0., 2., 4., 6., 8.])
+    >>> y = x ** 2
+    >>> np.gradient(y, dx, edge_order=2)
+    array([ 0.,  4.,  8., 12., 16.])
+
+    It's possible to provide different data for spacing along each dimension.
+    The number of arguments must match the number of dimensions in the input
+    data.
+
+    >>> dx = 2
+    >>> dy = 3
+    >>> x = np.arange(0, 6, dx)
+    >>> y = np.arange(0, 9, dy)
+    >>> xs, ys = np.meshgrid(x, y)
+    >>> zs = xs + 2 * ys
+    >>> np.gradient(zs, dy, dx)  # Passing two scalars
+    (array([[2., 2., 2.],
+            [2., 2., 2.],
+            [2., 2., 2.]]),
+     array([[1., 1., 1.],
+            [1., 1., 1.],
+            [1., 1., 1.]]))
+
+    Mixing scalars and arrays is also allowed:
+
+    >>> np.gradient(zs, y, dx)  # Passing one array and one scalar
+    (array([[2., 2., 2.],
+            [2., 2., 2.],
+            [2., 2., 2.]]),
+     array([[1., 1., 1.],
+            [1., 1., 1.],
+            [1., 1., 1.]]))
 
     Notes
     -----
@@ -5370,43 +5419,49 @@ def insert(arr, obj, values, axis=None):
     -----
     Note that for higher dimensional inserts ``obj=0`` behaves very different
     from ``obj=[0]`` just like ``arr[:,0,:] = values`` is different from
-    ``arr[:,[0],:] = values``.
+    ``arr[:,[0],:] = values``. This is because of the difference between basic
+    and advanced :ref:`indexing <basics.indexing>`.
 
     Examples
     --------
-    >>> a = np.array([[1, 1], [2, 2], [3, 3]])
+    >>> a = np.arange(6).reshape(3, 2)
     >>> a
-    array([[1, 1],
-           [2, 2],
-           [3, 3]])
-    >>> np.insert(a, 1, 5)
-    array([1, 5, 1, ..., 2, 3, 3])
-    >>> np.insert(a, 1, 5, axis=1)
-    array([[1, 5, 1],
-           [2, 5, 2],
-           [3, 5, 3]])
+    array([[0, 1],
+           [2, 3],
+           [4, 5]])
+    >>> np.insert(a, 1, 6)
+    array([0, 6, 1, 2, 3, 4, 5])
+    >>> np.insert(a, 1, 6, axis=1)
+    array([[0, 6, 1],
+           [2, 6, 3],
+           [4, 6, 5]])
 
-    Difference between sequence and scalars:
+    Difference between sequence and scalars,
+    showing how ``obj=[1]`` behaves different from ``obj=1``:
 
-    >>> np.insert(a, [1], [[1],[2],[3]], axis=1)
-    array([[1, 1, 1],
-           [2, 2, 2],
-           [3, 3, 3]])
-    >>> np.array_equal(np.insert(a, 1, [1, 2, 3], axis=1),
-    ...                np.insert(a, [1], [[1],[2],[3]], axis=1))
+    >>> np.insert(a, [1], [[7],[8],[9]], axis=1)
+    array([[0, 7, 1],
+           [2, 8, 3],
+           [4, 9, 5]])
+    >>> np.insert(a, 1, [[7],[8],[9]], axis=1)
+    array([[0, 7, 8, 9, 1],
+           [2, 7, 8, 9, 3],
+           [4, 7, 8, 9, 5]])
+    >>> np.array_equal(np.insert(a, 1, [7, 8, 9], axis=1),
+    ...                np.insert(a, [1], [[7],[8],[9]], axis=1))
     True
 
     >>> b = a.flatten()
     >>> b
-    array([1, 1, 2, 2, 3, 3])
-    >>> np.insert(b, [2, 2], [5, 6])
-    array([1, 1, 5, ..., 2, 3, 3])
+    array([0, 1, 2, 3, 4, 5])
+    >>> np.insert(b, [2, 2], [6, 7])
+    array([0, 1, 6, 7, 2, 3, 4, 5])
 
-    >>> np.insert(b, slice(2, 4), [5, 6])
-    array([1, 1, 5, ..., 2, 3, 3])
+    >>> np.insert(b, slice(2, 4), [7, 8])
+    array([0, 1, 7, 2, 8, 3, 4, 5])
 
     >>> np.insert(b, [2, 2], [7.13, False]) # type casting
-    array([1, 1, 7, ..., 2, 3, 3])
+    array([0, 1, 7, 0, 2, 3, 4, 5])
 
     >>> x = np.arange(8).reshape(2, 4)
     >>> idx = (1, 3)

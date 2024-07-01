@@ -12,7 +12,7 @@
 #include "get_attr_string.h"
 
 #include "arraywrap.h"
-#include "multiarraymodule.h"
+#include "npy_static_data.h"
 
 
 /*
@@ -57,7 +57,7 @@ npy_find_array_wrap(
             }
         }
         else {
-            PyObject *new_wrap = PyArray_LookupSpecial_OnInstance(obj, npy_ma_str_array_wrap);
+            PyObject *new_wrap = PyArray_LookupSpecial_OnInstance(obj, npy_interned_str.array_wrap);
             if (new_wrap == NULL) {
                 if (PyErr_Occurred()) {
                     goto fail;
@@ -159,8 +159,8 @@ npy_apply_wrap(
         }
         else {
             /* Replace passed wrap/wrap_type (borrowed refs) with new_wrap/type. */
-            PyObject *new_wrap = PyArray_LookupSpecial_OnInstance(
-                    original_out, npy_ma_str_array_wrap);
+            new_wrap = PyArray_LookupSpecial_OnInstance(
+                    original_out, npy_interned_str.array_wrap);
             if (new_wrap != NULL) {
                 wrap = new_wrap;
                 wrap_type = (PyObject *)Py_TYPE(original_out);
@@ -177,11 +177,13 @@ npy_apply_wrap(
      */
     if (!return_scalar && !force_wrap
             && (PyObject *)Py_TYPE(obj) == wrap_type) {
+        Py_XDECREF(new_wrap);
         Py_INCREF(obj);
         return obj;
     }
 
     if (wrap == Py_None) {
+        Py_XDECREF(new_wrap);
         Py_INCREF(obj);
         if (return_scalar) {
             /* 
@@ -239,8 +241,9 @@ npy_apply_wrap(
             wrap, arr, py_context,
             (return_scalar && PyArray_NDIM(arr) == 0) ? Py_True : Py_False,
             NULL);
-    if (res != NULL)
+    if (res != NULL) {
         goto finish;
+    }
     else if (!PyErr_ExceptionMatches(PyExc_TypeError)) {
         goto finish;
     }

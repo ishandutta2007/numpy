@@ -170,6 +170,8 @@ from numpy._typing._extended_precision import (
     complex512 as complex512,
 )
 
+from numpy._array_api_info import __array_namespace_info__ as __array_namespace_info__
+
 from collections.abc import (
     Callable,
     Iterable,
@@ -258,6 +260,7 @@ from numpy._core.fromnumeric import (
     all as all,
     any as any,
     cumsum as cumsum,
+    cumulative_sum as cumulative_sum,
     ptp as ptp,
     max as max,
     min as min,
@@ -265,6 +268,7 @@ from numpy._core.fromnumeric import (
     amin as amin,
     prod as prod,
     cumprod as cumprod,
+    cumulative_prod as cumulative_prod,
     ndim as ndim,
     size as size,
     around as around,
@@ -397,6 +401,7 @@ from numpy._core.shape_base import (
     hstack as hstack,
     stack as stack,
     vstack as vstack,
+    unstack as unstack,
 )
 
 from numpy.lib import (
@@ -636,7 +641,7 @@ def show_config() -> None: ...
 
 _NdArraySubClass = TypeVar("_NdArraySubClass", bound=NDArray[Any])
 _DTypeScalar_co = TypeVar("_DTypeScalar_co", covariant=True, bound=generic)
-_ByteOrder = L["S", "<", ">", "=", "|", "L", "B", "N", "I"]
+_ByteOrder = L["S", "<", ">", "=", "|", "L", "B", "N", "I", "little", "big", "native"]
 
 @final
 class dtype(Generic[_DTypeScalar_co]):

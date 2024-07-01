@@ -433,6 +433,14 @@ def unique_all(x):
     --------
     unique : Find the unique elements of an array.
 
+    Examples
+    --------
+    >>> np.unique_all([1, 1, 2])
+    UniqueAllResult(values=array([1, 2]),
+                    indices=array([0, 2]),
+                    inverse_indices=array([0, 0, 1]),
+                    counts=array([2, 1]))
+
     """
     result = unique(
         x,
@@ -475,6 +483,11 @@ def unique_counts(x):
     See Also
     --------
     unique : Find the unique elements of an array.
+
+    Examples
+    --------
+    >>> np.unique_counts([1, 1, 2])
+    UniqueCountsResult(values=array([1, 2]), counts=array([2, 1]))
 
     """
     result = unique(
@@ -520,6 +533,11 @@ def unique_inverse(x):
     --------
     unique : Find the unique elements of an array.
 
+    Examples
+    --------
+    >>> np.unique_inverse([1, 1, 2])
+    UniqueInverseResult(values=array([1, 2]), inverse_indices=array([0, 0, 1]))
+
     """
     result = unique(
         x,
@@ -559,6 +577,11 @@ def unique_values(x):
     See Also
     --------
     unique : Find the unique elements of an array.
+
+    Examples
+    --------
+    >>> np.unique_values([1, 1, 2])
+    array([1, 2])
 
     """
     return unique(
@@ -686,7 +709,7 @@ def setxor1d(ar1, ar2, assume_unique=False):
         Input arrays.
     assume_unique : bool
         If True, the input arrays are both assumed to be unique, which
-        can speed up the calculation.  Default is False.
+        can speed up the calculation. Default is False.
 
     Returns
     -------
@@ -706,7 +729,7 @@ def setxor1d(ar1, ar2, assume_unique=False):
         ar1 = unique(ar1)
         ar2 = unique(ar2)
 
-    aux = np.concatenate((ar1, ar2))
+    aux = np.concatenate((ar1, ar2), axis=None)
     if aux.size == 0:
         return aux
 
@@ -853,30 +876,16 @@ def _in1d(ar1, ar2, assume_unique=False, invert=False, *, kind=None):
         if ar2.dtype == bool:
             ar2 = ar2.astype(np.uint8)
 
-        ar2_min = np.min(ar2)
-        ar2_max = np.max(ar2)
+        ar2_min = int(np.min(ar2))
+        ar2_max = int(np.max(ar2))
 
-        ar2_range = int(ar2_max) - int(ar2_min)
+        ar2_range = ar2_max - ar2_min
 
         # Constraints on whether we can actually use the table method:
         #  1. Assert memory usage is not too large
         below_memory_constraint = ar2_range <= 6 * (ar1.size + ar2.size)
         #  2. Check overflows for (ar2 - ar2_min); dtype=ar2.dtype
         range_safe_from_overflow = ar2_range <= np.iinfo(ar2.dtype).max
-        #  3. Check overflows for (ar1 - ar2_min); dtype=ar1.dtype
-        if ar1.size > 0:
-            ar1_min = np.min(ar1)
-            ar1_max = np.max(ar1)
-
-            # After masking, the range of ar1 is guaranteed to be
-            # within the range of ar2:
-            ar1_upper = min(int(ar1_max), int(ar2_max))
-            ar1_lower = max(int(ar1_min), int(ar2_min))
-
-            range_safe_from_overflow &= all((
-                ar1_upper - int(ar2_min) <= np.iinfo(ar1.dtype).max,
-                ar1_lower - int(ar2_min) >= np.iinfo(ar1.dtype).min
-            ))
 
         # Optimal performance is for approximately
         # log10(size) > (log10(range) - 2.27) / 0.927.
@@ -906,8 +915,8 @@ def _in1d(ar1, ar2, assume_unique=False, invert=False, *, kind=None):
 
             # Mask out elements we know won't work
             basic_mask = (ar1 <= ar2_max) & (ar1 >= ar2_min)
-            outgoing_array[basic_mask] = isin_helper_ar[ar1[basic_mask] -
-                                                        ar2_min]
+            outgoing_array[basic_mask] = isin_helper_ar[
+                    np.subtract(ar1[basic_mask], ar2_min, dtype=np.intp)]
 
             return outgoing_array
         elif kind == 'table':  # not range_safe_from_overflow
